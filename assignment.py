@@ -1,9 +1,9 @@
 import librosa
 import numpy as np
+import matplotlib.pyplot as plt
 
-print(np.__version__)
 
-def compute_melspectrogram(audio_path, hop_length=512, n_fft=2048):
+def compute_melspectrogram(audio_path, n_mels=80, hop_length=512, n_fft=2048):
     """
     Computes the mel-spectrogram for an audio file.
 
@@ -18,18 +18,27 @@ def compute_melspectrogram(audio_path, hop_length=512, n_fft=2048):
     """
 
     # Load the audio file
-    y, sr = librosa.load(audio_path, sr=None)
+    scale, sr = librosa.load(audio_path, sr=None)
 
     # Compute the mel-spectrogram
-    mel_spectrogram = librosa.feature.melspectrogram(y=y, sr=sr, hop_length=hop_length, n_fft=n_fft)
+    mel_spectrogram = librosa.feature.melspectrogram(y=scale, sr=sr, n_mels=n_mels, hop_length=hop_length, n_fft=n_fft)
 
     # Convert to log scale (dB)
-    mel_spectrogram_db = librosa.power_to_db(mel_spectrogram, ref=np.max)
+    log_mel_spectrogram = librosa.power_to_db(mel_spectrogram)
 
-    return mel_spectrogram_db
+    plt.figure(figsize=(25, 10))
+    librosa.display.specshow(mel_spectrogram, 
+                        x_axis="time",
+                        y_axis="mel", 
+                        sr=sr)
+    plt.colorbar(format="%+2.f")
+    plt.show()
+
+    return log_mel_spectrogram
 
 # Example usage
-audio_path = '../sounds/739652__phonoflora__drilling.wav'
+audio_path = './sounds/piano.wav'
 melspectrogram = compute_melspectrogram(audio_path, hop_length=512, n_fft=2048)
 
 print(melspectrogram.shape)
+
