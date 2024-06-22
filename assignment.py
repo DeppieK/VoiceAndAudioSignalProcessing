@@ -6,6 +6,7 @@ from sklearn.svm import SVC
 from sklearn.metrics import classification_report
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LinearRegression
+from sklearn.neural_network import MLPClassifier
 
 
 def extract_melspectrogram(audio_path, n_mels=80, hop_length=512, n_fft=2048):
@@ -141,6 +142,17 @@ y_pred_ls_binary = np.where(y_pred_ls > 0.5, 1, 0)
 
 #classifier evaluation
 print(classification_report(y, y_pred_ls_binary))
+
+# Εκπαίδευση του MLP Classifier
+mlp_classifier = MLPClassifier(hidden_layer_sizes=(100,), activation='relu', solver='adam', max_iter=1000)
+mlp_classifier.fit(X, y)
+
+# Πρόβλεψη στο σύνολο εκπαίδευσης
+y_pred_mlp = mlp_classifier.predict(X)
+
+# Αξιολόγηση του classifier
+print(classification_report(y, y_pred_mlp))
+
 #example usage with a new audio file
 new_audio_path = './sounds/audio11.m4a'
 
@@ -172,3 +184,6 @@ print(f"Predicted label for the new audio file: {y_new_pred[0]}")
 y_new_pred_ls = least_squares_classifier.predict(X_new)
 y_new_pred_ls_binary = np.where(y_new_pred_ls > 0.5, 1, 0)
 print(f"Προβλεπόμενη ετικέτα για τον νέο ήχο: {y_new_pred_ls_binary[0]}")
+
+y_new_pred_mlp = mlp_classifier.predict(X_new)
+print(f"Προβλεπόμενη ετικέτα για τον νέο ήχο με MLP: {y_new_pred_mlp[0]}")
