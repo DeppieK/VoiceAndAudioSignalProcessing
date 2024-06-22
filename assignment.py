@@ -47,6 +47,27 @@ def apply_median_filter(binary_representation, size=3):
     
     return filtered_representation
 
+def find_word_boundaries(filtered_representation):
+    word_boundaries = []
+    in_word = False
+    start_idx = 0
+    
+    for i, val in enumerate(filtered_representation):
+        if val == 1 and not in_word:
+            #start of a new word
+            start_idx = i
+            in_word = True
+        elif val == 0 and in_word:
+            #end of the current word
+            word_boundaries.append((start_idx, i - 1))
+            in_word = False
+    
+    #φf the representation ends while still in a word
+    if in_word:
+        word_boundaries.append((start_idx, len(filtered_representation) - 1))
+    
+    return word_boundaries
+
 '''
 start blah blah
 '''
@@ -66,3 +87,17 @@ print(np.unique(filtered_representation))
 
 #print a portion of the filtered binary representation to see details
 print(filtered_representation[:100]) #to be removed
+
+#find word boundaries
+word_boundaries = find_word_boundaries(filtered_representation)
+print(word_boundaries)
+
+#print or plot the word boundaries on the binary representation
+plt.figure(figsize=(25, 10))
+plt.plot(filtered_representation)
+for start, end in word_boundaries:
+    plt.axvspan(start, end, color='red', alpha=0.3)
+plt.title("Word Boundaries in Binary Representation")
+plt.xlabel("Frame")
+plt.ylabel("Foreground/Background (1/0)")
+plt.show()
