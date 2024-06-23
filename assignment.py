@@ -12,7 +12,6 @@ from pydub import AudioSegment
 from pydub.playback import play
 
 
-
 '''
 Melspectorgram
 '''
@@ -118,8 +117,24 @@ def prepare_data(audio_paths, target_length, return_numpy):
     #else return a list
     return data
 
+
 '''
-αναπραγωγη λεξεων 
+Concatenate audio files
+'''
+def concatenate_audio_files(audio_paths, output_path):
+
+    combined_audio = None
+    for path in audio_paths:
+        sound = AudioSegment.from_file(path)
+        if combined_audio is None:
+            combined_audio = sound
+        else:
+            combined_audio += sound
+
+    combined_audio.export(output_path, format="wav")
+
+'''
+Play words 
 '''
 # Define a function to play the audio segments corresponding to the word boundaries
 def play_detected_words(audio_path, word_boundaries):
@@ -137,49 +152,47 @@ def play_detected_words(audio_path, word_boundaries):
         play(word_segment)
 
 '''
-δευτερο ερωτημα 
+Mean fundamental frequency (second assignment question)
 '''
 def calculate_mean_fundamental_frequency(word_boundaries, log_mel_spectrogram):
+    
     fundamental_frequencies = []
-
     for start, end in word_boundaries:
-        # Extract the frame corresponding to the word boundary
+        #extract the frame corresponding to the word boundary
         frame = log_mel_spectrogram[:, start:end+1]
-
-        # Ensure frame is 1-dimensional
         frame = frame.flatten()
 
-        # Calculate short-term autocorrelation
+        #short-term autocorrelation
         autocorr = np.correlate(frame, frame, mode='full')
 
-        # Normalize autocorrelation
+        #normalization
         autocorr = autocorr / autocorr[len(autocorr) // 2]
 
-        # Set a threshold (e.g., 0.7)
+        #threshold = 0.7
         threshold = 0.7
 
-        # Find indices where autocorrelation is above the threshold
+        #find frames greater than the treshold
         reliable_indices = np.where(autocorr > threshold)[0]
 
-        # Calculate mean fundamental frequency
+        #mean fundamental frequency
         if len(reliable_indices) > 0:
             mean_fundamental_frequency = np.mean(reliable_indices)
         else:
-            mean_fundamental_frequency = 0  # or any default value
+            mean_fundamental_frequency = 0
         
         fundamental_frequencies.append(mean_fundamental_frequency)
 
-    # Calculate average fundamental frequency for all words
+    #average fundamental frequency
     if fundamental_frequencies:
         avg_fundamental_frequency = np.mean(fundamental_frequencies)
     else:
-        avg_fundamental_frequency = 0  # or any default value
+        avg_fundamental_frequency = 0
 
     return avg_fundamental_frequency
 
 
 '''
-Start
+Main
 '''
 
 #files for the classifiers' training
@@ -233,6 +246,63 @@ model_rnn.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metr
 
 #train the rnn model
 model_rnn.fit(X_rnn, y_rnn, epochs=10, batch_size=1, verbose=1)
+
+'''
+# Define output path for concatenated audio
+output_audio_path = './sounds/combined_audio.wav'
+
+# Concatenate audio files into one
+concatenate_audio_files(audio_paths, output_audio_path)
+
+# Load and prepare data for training
+output_audio_path = './sounds/combined_audio.wav'
+target_length = 2000
+
+
+# Prepare data for SVM, MLP, and Least Squares
+X = prepare_data(output_audio_path, target_length, return_numpy=False).reshape(1, -1)
+y = np.array([1])
+
+#train SVM
+svm_classifier = SVC(kernel='linear')
+svm_classifier.fit(X, y)
+y_pred_svm = svm_classifier.predict(X)
+print("SVM Classification Report:")
+print(classification_report(y, y_pred_svm))
+
+#train MLP (with three layers)
+mlp_classifier = MLPClassifier(hidden_layer_sizes=(100, 50, 25), activation='relu', solver='adam', max_iter=1000)
+mlp_classifier.fit(X, y)
+y_pred_mlp = mlp_classifier.predict(X)
+print("MLP Classification Report:")
+print(classification_report(y, y_pred_mlp))
+
+#train Least Squares
+least_squares_classifier = LinearRegression()
+least_squares_classifier.fit(X, y)
+y_pred_ls = least_squares_classifier.predict(X)
+y_pred_ls_binary = np.where(y_pred_ls > 0.5, 1, 0) #if y_pred_ls is > 0.5 --> it is classified as 1 (positive class), else it is classified as 0 (negative class)
+print("Least Squares Classification Report:")
+print(classification_report(y, y_pred_ls_binary))
+
+# Prepare data for RNN (assuming target_length_rnn = 100)
+target_length_rnn = 100
+X_rnn = prepare_data(output_audio_path, target_length_rnn, return_numpy=True)
+y_rnn = np.array([1])
+
+#define RNN model
+model_rnn = Sequential([
+    SimpleRNN(units=32, input_shape=(target_length_rnn, 1)),
+    Dense(2, activation='softmax')
+])
+
+#compile the model
+model_rnn.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+#train the rnn model
+model_rnn.fit(X_rnn, y_rnn, epochs=10, batch_size=1, verbose=1)
+
+'''
 
 #new audio file
 new_audio_path = './sounds/speech2.m4a'
@@ -292,7 +362,7 @@ if log_melspectrogram_new is not None:
     print(f"RNN Predicted word boundaries for the new audio file: {word_boundaries_rnn}")
 
 '''
-classifiers' comparison
+Classifiers' comparison
 '''
 #calculate performance metrics for all classifiers
 classifiers = {
@@ -309,11 +379,7 @@ for name, (clf, y_pred) in classifiers.items():
     print(f"{name} Classification Report:")
     print(classification_report(y, y_pred))
 
-'''
-output the words!!
-'''
-
-# Play the detected words
+#play the detected words
 play_detected_words(new_audio_path, word_boundaries_svm)
 play_detected_words(new_audio_path, word_boundaries_ls)
 play_detected_words(new_audio_path, word_boundaries_mlp)
@@ -321,13 +387,7 @@ play_detected_words(new_audio_path, word_boundaries_rnn)
 
 
 '''
-second question
+Mean fundamental frequency (second question)
 '''
-# Assuming you have log_mel_spectrogram and word_boundaries_svm from your existing code
-#log_mel_spectrogram = extract_melspectrogram(new_audio_path, hop_length=512, n_fft=2048)
-#word_boundaries_svm = find_word_boundaries(filtered_representation_svm)
-
-# Calculate mean fundamental frequency
 avg_fundamental_frequency = calculate_mean_fundamental_frequency(word_boundaries_svm, log_melspectrogram_new)
-
 print(f"Average Fundamental Frequency: {avg_fundamental_frequency}")
