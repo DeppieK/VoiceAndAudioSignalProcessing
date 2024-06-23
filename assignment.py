@@ -389,5 +389,13 @@ play_detected_words(new_audio_path, word_boundaries_rnn)
 '''
 Mean fundamental frequency (second question)
 '''
-avg_fundamental_frequency = calculate_mean_fundamental_frequency(word_boundaries_svm, log_melspectrogram_new)
-print(f"Average Fundamental Frequency: {avg_fundamental_frequency}")
+avg_fundamental_frequency_svm = calculate_mean_fundamental_frequency(word_boundaries_svm, log_melspectrogram_new)
+avg_fundamental_frequency_ls = calculate_mean_fundamental_frequency(word_boundaries_ls, log_melspectrogram_new)
+avg_fundamental_frequency_mlp = calculate_mean_fundamental_frequency(word_boundaries_mlp, log_melspectrogram_new)
+avg_fundamental_frequency_rnn = calculate_mean_fundamental_frequency(word_boundaries_rnn, log_melspectrogram_new)
+
+print(f"Average Fundamental Frequency for SVM: {avg_fundamental_frequency_svm}")
+print(f"Average Fundamental Frequency for Least Squares: {avg_fundamental_frequency_ls}")
+print(f"Average Fundamental Frequency for MLP: {avg_fundamental_frequency_mlp}")
+print(f"Average Fundamental Frequency for RNN: {avg_fundamental_frequency_rnn}")
+
